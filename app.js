@@ -1,113 +1,64 @@
-var twit = require('twit');
-var request = require('request');
-var express =  require('express')
-var app = express();
-
-var port = process.env.PORT || 3000;
+var twit = require('twit')
+var fs = require('fs')
 
 var T = new twit({
-  consumer_key: process.env.CONSUMER_KEY,//consumer_key
-  consumer_secret: process.env.CONSUMER_SECRET,//consumer_secret
-  access_token: process.env.ACCESS_TOKEN,//access_token
-  access_token_secret: process.env.ACCESS_TOKEN_SECRET,//access_token secret
-})
-
-// Function for capitalizing the first word of the string
-function numberWithCommas(x) {
-  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-
-
-app.get("/" , (req,res)=>{
-  res.send("Follow <a href='https://twitter.com/piyushsthr'>@PiyushSthr</a> on twitter")
-})
-
-app.get("/MJuUhWgSk4gnk5bRm2X9DRXfYY7Mrc/hcqZmGebucRGxfRTHSGCRyWFgf6YGp/9anMqFhCQsbef7k4qmdv4m6Meue6zL",(req,res)=>{
-  main()
+    consumer_key:         'qHZWVEtxZ1bmsIINR1dKJRkBw',//consumer_key
+    consumer_secret:      '5Mqmade9kXvTLE4SrgpnBvCp4zOC1qEPoEAe2XgmtlS2jln1kq',//consumer_secret
+    access_token:         '1282023413318430720-kGiMWyWzQ2UgMcSTXqHbNZ2ECwO4mL',//access_token
+    access_token_secret:  'Lab9XeAjFOKUlm7veeSKkF7WSDyUu00WvSg3Dk90tZrwL',//access_token secret
 })
 
 
+/*
+   Function for uploading image.
+   Usage Example:- tweetImage("Text You want to tweet with Image","NameofImage.png/jpg")
+*/
+  function tweetImage(tweetText , imgName){
+    //Converting image to base64 to easily upload image on twitter servers
+    var b64content = fs.readFileSync(imgName, { encoding: 'base64' })
 
+    T.post('media/upload', { media_data: b64content }, function (err, data, response) {
+        // now we can assign alt text to the media, for use by screen readers and
+        // other text-based presentations and interpreters
+        var mediaIdStr = data.media_id_string //After uploading we get an id of the image
+        var AltText = tweetText; // Your Alt Text
+        var meta_params = { media_id: mediaIdStr, alt_text:{ text: AltText} }
 
- var main = async()=>{
+        T.post('media/metadata/create', meta_params, function (err, data, response) {
+        if (!err) {
+                // now we can reference the media and post a tweet (media will attach to the tweet)
 
-  //Variables
-  let cases;
-  let deaths;
-  let recovered;
+                var Status= tweetText//Your Status
+                var params = { status: Status, media_ids: [mediaIdStr] }
 
-  let casesIndia;
-  let deathsIndia;
-  let casesTodayIndia;
-  let todayRecoveredIndia;
-  let recoveredIndia;
-  let todayDeathsIndia;
-  let recoveredToday;
-  let deathsToday;
-
-  var text;
-
-  //Getting Quotes from api
-   request("https://disease.sh/v2/all", { json: true }, (err, res, body) => {
-     console.log(body.cases);
-     console.log(body.deaths);
-     //Text you want to show in the image
-     cases = numberWithCommas(body.cases);
-     deaths = numberWithCommas(body.deaths);
-     recovered = numberWithCommas(body.recovered);
-     casesToday = numberWithCommas(body.todayCases)
-     recoveredToday = numberWithCommas(body.todayRecovered);
-     deathsToday = numberWithCommas(body.todayDeaths)
-
-     let India = request("https://disease.sh/v2/countries/india", { json: true }, (err, res, body) => {
-
-      casesIndia = numberWithCommas(body.cases);
-      casesTodayIndia = numberWithCommas(body.todayCases);
-      deathsIndia = numberWithCommas(body.deaths);
-      todayRecoveredIndia = numberWithCommas(body.todayRecovered);
-      recoveredIndia = numberWithCommas(body.recovered);
-      todayDeathsIndia = numberWithCommas(body.todayDeaths);
-
-      text = `
-Latest Covid-19 News! 👨‍🔬
-
-WorldWide 🌍
-Cases Today :- ${casesToday} (${cases})
-Recovered Today :- ${recoveredToday} (${recovered})
-Deaths Today :- ${deathsToday} (${deaths})
-
-India 🇮🇳
-Cases Today :- ${casesTodayIndia} (${casesIndia})
-Recovered Today :- ${todayRecoveredIndia} (${recoveredIndia})
-Deaths Today :- ${todayDeathsIndia} (${deathsIndia})
-
-Stay Safe 😷
-      `;
-      console.log(text);
-      tweet(text);
-
+                //Now It will post the tweet with the image.
+                T.post('statuses/update', params, function (err, data, response) {
+                    console.log("Tweeted")// Console Logging if tweeted.
+                })
+            }
+        })
     })
-
-   });
-
-}
-
-
-
-// uploading Image
-function tweet(text) {
+  }
+  
+  
+  /*
+    Function to tweet Text.
+    Usage example :- tweetText("Text To tweet but remeber the limit of Twitter")
+    */
+  
+  function tweetText(text) {
 
   var tweet = text;
   //Converting image to base64 to easily upload image on twitter servers
   T.post('statuses/update', { status: tweet }, function (err, data, response) {
-
-    console.log(data);
+    //console.log(data);
+    if(err){
+      console.log(err)
+      return;
+    }
     console.log("Tweeted")
 
   });
 
 
 }
-
-app.listen(port, ()=>console.log("Jai Shree ram"))
